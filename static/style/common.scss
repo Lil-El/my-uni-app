@@ -13,6 +13,12 @@ $primary-color: #1577fe;
 .cm-color-primary{
 	color: $primary-color;
 }
+.cm-text-btn{
+	height: 90rpx;
+	line-height: 90rpx;
+	text-align: center;
+	font-size: 32rpx;
+}
 .cm-button {
 	min-width: 200rpx;
 }

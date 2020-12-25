@@ -1,6 +1,7 @@
 <template>
 	<view class="inspect-container">
 		<!-- markers polyline controls -->
+		<!-- vue页面的地图location控件不显示；使用nvue -->
 		<map class="uni-map" :longitude="mapData.longitude" :latitude="mapData.latitude" :show-location="true">
 			<cover-image class="uni-map__image img_pos_1" src="@/static/img/inspect/warning.png" @click="navigateTo"></cover-image>
 			<cover-image class="uni-map__image img_pos_2" src="@/static/img/inspect/clockposition.png" @click="clock" v-if="active === status.START"></cover-image>
@@ -25,456 +26,475 @@
 </template>
 
 <script>
-import File from '@/static/mixin/file.js';
-var appMap = null;
-var g_wakelock = null;
-export default {
-	mixins: ['File'],
-	data() {
-		const status = {
-			READY: 'READY',
-			START: 'START',
-			END: 'END'
-		};
-		const DIR_NAME = '_inspection';
-		const DIR_PATH = '_doc/' + DIR_NAME + '/';
-		return {
-			id: new Date().getTime(),
-			status,
-			active: status.READY,
-			mileageMetry: 0, // 里程：米
-			timeSeconds: 0, // 用时：秒
-			timeTimer: null,
-			inspectTimer: null,
-			platForm: null,
-			mapData: {
-				longitude: '',
-				latitude: '',
-				markers: [],
-				polyline: [],
-				controls: []
-			},
-			formData: {
-				startPosition: '',
-				startTime: '',
-				endPosition: '',
-				endTime: '',
-				midPosition: '',
-				midTime: ''
-			},
-			DIR_NAME,
-			DIR_PATH
-		};
-	},
-	computed: {
-		btnName() {
-			const names = {
-				READY: '开始巡检',
-				START: '结束巡检',
-				END: '结束巡检'
+	import FileMixin from '@/static/mixin/file.js';
+	var appMap = null;
+	var g_wakelock = null;
+	export default {
+		mixins: [FileMixin],
+		data() {
+			const status = {
+				READY: 'READY',
+				START: 'START',
+				END: 'END'
 			};
-			return names[this.active];
+			const DIR_NAME = '_inspection';
+			const DIR_PATH = '_doc/' + DIR_NAME + '/';
+			return {
+				id: new Date().getTime(),
+				status,
+				active: status.READY,
+				mileageMetry: 0, // 里程：米
+				timeSeconds: 0, // 用时：秒
+				timeTimer: null,
+				inspectTimer: null,
+				platForm: null,
+				mapData: {
+					longitude: '',
+					latitude: '',
+					markers: [],
+					polyline: [],
+					controls: []
+				},
+				formData: {
+					startPosition: '',
+					startTime: '',
+					endPosition: '',
+					endTime: '',
+					midPosition: '',
+					midTime: ''
+				},
+				DIR_NAME,
+				DIR_PATH
+			};
 		},
-		// 里程
-		mileage() {
-			if (this.mileageMetry < 1000) {
-				return this.mileageMetry + 'm';
-			} else {
-				return (this.mileageMetry / 1000).toFixed(3) + 'km';
+		computed: {
+			btnName() {
+				const names = {
+					READY: '开始巡检',
+					START: '结束巡检',
+					END: '结束巡检'
+				};
+				return names[this.active];
+			},
+			// 里程
+			mileage() {
+				if (this.mileageMetry < 1000) {
+					return this.mileageMetry + 'm';
+				} else {
+					return (this.mileageMetry / 1000).toFixed(3) + 'km';
+				}
+			},
+			// 用时
+			time() {
+				let seconds = this.timeSeconds;
+				let hour = Math.floor(seconds / 3600) >= 10 ? Math.floor(seconds / 3600) : '0' + Math.floor(seconds / 3600);
+				seconds -= 3600 * hour;
+				let min = Math.floor(seconds / 60) >= 10 ? Math.floor(seconds / 60) : '0' + Math.floor(seconds / 60);
+				seconds -= 60 * min;
+				let sec = seconds >= 10 ? seconds : '0' + seconds;
+				return hour + ':' + min + ':' + sec;
 			}
 		},
-		// 用时
-		time() {
-			let seconds = this.timeSeconds;
-			let hour = Math.floor(seconds / 3600) >= 10 ? Math.floor(seconds / 3600) : '0' + Math.floor(seconds / 3600);
-			seconds -= 3600 * hour;
-			let min = Math.floor(seconds / 60) >= 10 ? Math.floor(seconds / 60) : '0' + Math.floor(seconds / 60);
-			seconds -= 60 * min;
-			let sec = seconds >= 10 ? seconds : '0' + seconds;
-			return hour + ':' + min + ':' + sec;
-		}
-	},
-	async onReady() {
-		await this.getLocation();
-	},
-	async onLoad() {
-		let dirEntry = await this.getDirEntry(this.DIR_NAME);
-		this.iterateDierctory(dirEntry);
-		// dev时清空文件和storage
-		// this.removeFile(dirEntry);
-		// uni.removeStorageSync("_inspection");
-	},
-	onShow() {
-		uni.getSystemInfo({
-			success: e => {
-				this.platForm = e.platform;
-			}
-		});
-	},
-	methods: {
-		//允许程序后台运行，以持续获取GPS位置
-		wakeLock() {
-			let main = plus.android.runtimeMainActivity();
-			let Context = plus.android.importClass('android.content.Context');
-			let PowerManager = plus.android.importClass('android.os.PowerManager');
-			let pm = main.getSystemService(Context.POWER_SERVICE);
-			g_wakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, 'ANY_NAME');
-			g_wakelock.acquire();
+		async onReady() {
+			await this.getLocation();
 		},
-		//结束程序后台运行
-		releaseWakeLock() {
-			if (g_wakelock != null && g_wakelock.isHeld()) {
-				g_wakelock.release();
-				g_wakelock = null;
-			}
-		},
-		async handleClick() {
-			uni.showLoading({
-				mask: true
-			});
-			let coord;
-			switch (this.active) {
-				case this.status.END:
-					break;
-				case this.status.READY:
-					console.log("开始巡查")
-					coord = await this.getLatlng();
-					if (coord === null) return void 0;
-					console.log("coord:",coord);
-					this.active = this.status.START;
-					this.mapData.latitude = coord.lat;
-					this.mapData.longitude = coord.lng;
-					if (this.platForm == 'android') this.wakeLock();
-					this.formData.startPosition = coord.lat + ',' + coord.lng;
-					this.formData.startTime = this.getTime();
-					await this.recordTrackToFile(coord.lat, coord.lng); // 记录初始点到文件中，否则第一个点是在10s后记录
-					this.inspectTimer = await this.startTrack();
-					this.timeTimer = setInterval(() => {
-						this.timeSeconds += 1;
-					}, 1000);
-					break;
-				case this.status.START:
-					clearInterval(this.timeTimer);
-					clearInterval(this.inspectTimer);
-					this.active = this.status.END;
-					coord = await this.getLatlng();
-					if (coord === null) coord = { lat: this.mapData.latitude, lng: this.mapData.longitude };
-					this.mapData.latitude = coord.lat;
-					this.mapData.longitude = coord.lng;
-					this.formData.endPosition = coord.lat + ',' + coord.lng;
-					this.formData.endTime = this.getTime();
-					await this.recordTrackToFile(coord.lat, coord.lng);
-					// await this.endTrack();
-					break;
-			}
-		},
-		async startTrack() {
-			return setInterval(async () => {
-				let coord = await this.getLatlng();
-				if (coord === null) coord = { lat: this.mapData.latitude, lng: this.mapData.longitude };
-				// 先计算里程，然后赋值经纬度
-				this.distance(this.mapData.latitude, this.mapData.longitude, coord.lat, coord.lng);
-				this.mapData.latitude = coord.lat;
-				this.mapData.longitude = coord.lng;
-				await this.recordTrackToFile(coord.lat, coord.lng);
-			}, 1000 * 1);
-		},
-		// 结束巡查
-		async endTrack() {
-			let fileName = this.id + '.json';
-			let filePath = this.DIR_PATH + fileName;
+		async onLoad() {
 			let dirEntry = await this.getDirEntry(this.DIR_NAME);
-			let info = {
-				taskId: this.id,
-				startPosition: this.startPosition,
-				startTime: this.startTime,
-				endPosition: this.endPosition,
-				endTime: this.endTime,
-				midPosition: this.midPosition,
-				midTime: this.midTime,
-				punchUser: uni.getStorageSync('username'),
-				userId: uni.getStorageSync('USERBEAN').id,
-				duration: this.times,
-				mileage: this.distance_km
-			};
-			// let {result} = await this.getFileContext(filePath);
-			// console.log("巡查上报：", result);
-			uni.uploadFile({
-				url: uni.getStorageSync('serviceUrl') + 'personSafePatrol/savePatrol',
-				files: [
-					{
+			this.iterateDierctory(dirEntry);
+			// dev时清空文件和storage
+			this.removeFile(dirEntry);
+			uni.removeStorageSync("_inspection");
+		},
+		onShow() {
+			uni.getSystemInfo({
+				success: e => {
+					this.platForm = e.platform;
+				}
+			});
+		},
+		methods: {
+			//允许程序后台运行，以持续获取GPS位置
+			wakeLock() {
+				let main = plus.android.runtimeMainActivity();
+				let Context = plus.android.importClass('android.content.Context');
+				let PowerManager = plus.android.importClass('android.os.PowerManager');
+				let pm = main.getSystemService(Context.POWER_SERVICE);
+				g_wakelock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, 'ANY_NAME');
+				g_wakelock.acquire();
+			},
+			//结束程序后台运行
+			releaseWakeLock() {
+				if (g_wakelock != null && g_wakelock.isHeld()) {
+					g_wakelock.release();
+					g_wakelock = null;
+				}
+			},
+			async handleClick() {
+				// uni.showLoading({
+				// 	mask: true
+				// });
+				let coord;
+				switch (this.active) {
+					case this.status.END:
+						console.log("没有用的点击")
+						break;
+					case this.status.READY:
+						console.log("开始巡查")
+						coord = await this.getLatlng();
+						if (coord === null) return void 0;
+						this.active = this.status.START;
+						this.mapData.latitude = coord.lat;
+						this.mapData.longitude = coord.lng;
+						if (this.platForm == 'android') this.wakeLock();
+						this.formData.startPosition = coord.lat + ',' + coord.lng;
+						this.formData.startTime = this.getTime();
+						await this.recordTrackToFile(coord.lat, coord.lng); // 记录初始点到文件中，否则第一个点是在10s后记录
+						this.inspectTimer = await this.startTrack();
+						this.timeTimer = setInterval(() => {
+							this.timeSeconds += 1;
+						}, 1000);
+						break;
+					case this.status.START:
+						console.log("结束巡查")
+						clearInterval(this.timeTimer);
+						clearInterval(this.inspectTimer);
+						this.active = this.status.END;
+						coord = await this.getLatlng();
+						if (coord === null) coord = {
+							lat: this.mapData.latitude,
+							lng: this.mapData.longitude
+						};
+						this.mapData.latitude = coord.lat;
+						this.mapData.longitude = coord.lng;
+						this.formData.endPosition = coord.lat + ',' + coord.lng;
+						this.formData.endTime = this.getTime();
+						await this.recordTrackToFile(coord.lat, coord.lng);
+						await this.endTrack();
+						break;
+				}
+			},
+			async startTrack() {
+				return setInterval(async () => {
+					let coord = await this.getLatlng();
+					if (coord === null) coord = {
+						lat: this.mapData.latitude,
+						lng: this.mapData.longitude
+					};
+					// 先计算里程，然后赋值经纬度
+					this.mileageMetry = this.getDistance(this.mapData.latitude, this.mapData.longitude, coord.lat, coord.lng);
+					this.mapData.latitude = coord.lat;
+					this.mapData.longitude = coord.lng;
+					await this.recordTrackToFile(coord.lat, coord.lng);
+				}, 1000);
+			},
+			// 结束巡查
+			async endTrack() {
+				let fileName = this.id + '.json';
+				let filePath = this.DIR_PATH + fileName;
+				let dirEntry = await this.getDirEntry(this.DIR_NAME);
+				let info = {
+					taskId: this.id,
+					...this.formData,
+					punchUser: uni.getStorageSync('username'),
+					userId: uni.getStorageSync('USERBEAN').id,
+					duration: this.time,
+					mileage: this.mileage
+				};
+				console.log(info)
+				// let {result} = await this.getFileContext(filePath);
+				// console.log("巡查上报：", result);
+				return void 0;
+				uni.uploadFile({
+					url: uni.getStorageSync('serviceUrl') + 'personSafePatrol/savePatrol',
+					files: [{
 						name: 'file',
 						uri: filePath
-					}
-				],
-				formData: info,
-				header: { Authorization: uni.getStorageSync('user_token') },
-				method: 'POST',
-				success: async res => {
-					uni.hideLoading();
-					if (res.statusCode == 200) {
-						if (_this.platForm == 'android') {
-							_this.releaseWakeLock();
+					}],
+					formData: info,
+					header: {
+						Authorization: uni.getStorageSync('user_token')
+					},
+					method: 'POST',
+					success: async res => {
+						uni.hideLoading();
+						if (res.statusCode == 200) {
+							if (_this.platForm == 'android') {
+								_this.releaseWakeLock();
+							}
+							await _this.removeFile(dirEntry, fileName);
+							uni.showToast({
+								title: '巡查完成',
+								duration: 1000
+							});
+							uni.$emit('close', {
+								msg: '关闭页面'
+							});
+							setTimeout(() => {
+								uni.navigateBack();
+							}, 1000);
+						} else {
+							console.log(res);
+							this.setInspection(fileName, info);
+							uni.showModal({
+								title: '提示',
+								content: '上报失败，巡查文件已保存至本地，请在网络顺畅时打开APP重新上传',
+								showCancel: false,
+								complete() {
+									uni.$emit('close', {
+										msg: '关闭页面'
+									});
+									uni.navigateBack();
+								}
+							});
 						}
-						await _this.removeFile(dirEntry, fileName);
-						uni.showToast({
-							title: '巡查完成',
-							duration: 1000
-						});
-						uni.$emit('close', { msg: '关闭页面' });
-						setTimeout(() => {
-							uni.navigateBack();
-						}, 1000);
-					} else {
-						console.log(res);
+					},
+					fail: err => {
 						this.setInspection(fileName, info);
+						uni.hideLoading();
 						uni.showModal({
 							title: '提示',
-							content: '上报失败，巡查文件已保存至本地，请在网络顺畅时打开APP重新上传',
+							content: '网络异常，巡查文件已保存至本地，请在网络顺畅时打开APP重新上传',
 							showCancel: false,
 							complete() {
-								uni.$emit('close', { msg: '关闭页面' });
+								uni.$emit('close', {
+									msg: '关闭页面'
+								});
 								uni.navigateBack();
 							}
 						});
 					}
-				},
-				fail: err => {
-					this.setInspection(fileName, info);
-					uni.hideLoading();
-					uni.showModal({
-						title: '提示',
-						content: '网络异常，巡查文件已保存至本地，请在网络顺畅时打开APP重新上传',
-						showCancel: false,
-						complete() {
-							uni.$emit('close', { msg: '关闭页面' });
-							uni.navigateBack();
+				});
+			},
+			async clock() {
+				let coord = await this.getLatlng();
+				if (coord === null) coord = {
+					lat: this.mapData.latitude,
+					lng: this.mapData.longitude
+				};
+				this.formData.midPosition.length > 0 ? (this.formData.midPosition += ';' + coord.lat + ',' + coord.lng) : (this.formData
+					.midPosition = coord.lat + ',' + coord.lng);
+				this.formData.midTime.length > 0 ? (this.formData.midTime += ';' + this.getTime()) : (this.formData.midTime = this
+					.getTime());
+				uni.showToast({
+					title: '打卡成功',
+					icon: 'none'
+				});
+			},
+			setInspection(name, info) {
+				const KEY = this.DIR_NAME;
+				let inspectionRecords = JSON.parse(uni.getStorageSync(KEY) || '[]');
+				inspectionRecords.push({
+					name,
+					info
+				});
+				uni.setStorageSync(KEY, JSON.stringify(inspectionRecords));
+			},
+			async getLocation() {
+				uni.showLoading({
+					title: '位置获取中',
+					mask: true
+				});
+				let coord = await this.getLatlng();
+				this.mapData.latitude = coord.lat;
+				this.mapData.longitude = coord.lng;
+				uni.hideLoading();
+			},
+			// 记录轨迹信息到文件中
+			async recordTrackToFile(lat, lng) {
+				let fileName = this.id + '.json';
+				let filePath = this.DIR_PATH + fileName;
+				let dirEntry = await this.getDirEntry(this.DIR_NAME);
+				let fileEntry = await this.getFileEntry(fileName, dirEntry);
+				let {
+					result: content
+				} = await this.getFileContext(filePath);
+				let trajectory = JSON.parse(content || '[]');
+				console.log(trajectory)
+				trajectory.push({
+					lat,
+					lng
+				});
+				fileEntry.createWriter(function(writer) {
+					writer.seek(0);
+					writer.write(JSON.stringify(trajectory));
+				});
+			},
+			async getLatlng() {
+				let getLatlngOnline = () => {
+					return new Promise((resolve, reject) => {
+						uni.getLocation({
+							type: 'gcj02',
+							success: res => {
+								resolve({
+									lat: res.latitude,
+									lng: res.longitude
+								});
+							},
+							fail: error => {
+								uni.showToast({
+									title: '当前位置获取失败,请检查GPS是否打开',
+									duration: 2000,
+									icon: 'none'
+								});
+								console.log('网络定位错误：', error);
+								reject();
+							}
+						});
+					});
+				};
+				let getLatlngOffline = () => {
+					return new Promise((resolve, reject) => {
+						plus.geolocation.getCurrentPosition(
+							res => {
+								resolve({
+									lat: res.coords.latitude,
+									lng: res.coords.longitude
+								});
+							},
+							error => {
+								let errorMsg = {
+									2: '定位失败，检查GPS是否打开，建议持设备到相对开阔的露天场所再次尝试'
+								};
+								uni.showToast({
+									title: errorMsg[error.code] || error.message,
+									duration: 2000,
+									icon: 'none'
+								});
+								reject();
+							}
+						);
+					});
+				};
+				return new Promise((resolve, reject) => {
+					uni.getNetworkType({
+						success: async ({
+							networkType
+						}) => {
+							try {
+								let coord = networkType === 'none' ? await getLatlngOffline() : await getLatlngOnline();
+								resolve(coord);
+							} catch (_) {
+								resolve(null); // 定位获取失败仍然返回，返回值为null
+							}
 						}
 					});
-				}
-			});
-		},
-		async clock() {
-			let coord = await this.getLatlng();
-			if (coord === null) coord = { lat: this.mapData.latitude, lng: this.mapData.longitude };
-			this.formData.midPosition.length > 0 ? (this.formData.midPosition += ';' + coord.lat + ',' + coord.lng) : (this.formData.midPosition = coord.lat + ',' + coord.lng);
-			this.formData.midTime.length > 0 ? (this.formData.midTime += ';' + this.getTime()) : (this.formData.midTime = this.getTime());
-			uni.showToast({
-				title: '打卡成功',
-				icon: 'none'
-			});
-		},
-		setInspection(name, info) {
-			const KEY = this.DIR_NAME;
-			let inspectionRecords = JSON.parse(uni.getStorageSync(KEY) || '[]');
-			inspectionRecords.push({ name, info });
-			uni.setStorageSync(KEY, JSON.stringify(inspectionRecords));
-		},
-		async getLocation() {
-			uni.showLoading({
-				title: '位置获取中',
-				mask: true
-			});
-			let coord = await this.getLatlng();
-			this.mapData.latitude = coord.lat;
-			this.mapData.longitude = coord.lng;
-			uni.hideLoading();
-		},
-		// 记录轨迹信息到文件中
-		async recordTrackToFile(lat, lng) {
-			console.log("this.id", this.id)
-			let fileName = this.id + '.json';
-			let filePath = this.DIR_PATH + fileName;
-			let dirEntry = await this.getDirEntry(this.DIR_NAME);
-			let fileEntry = await this.getFileEntry(fileName, dirEntry);
-			let { result: content } = await this.getFileContext(filePath);
-			let trajectory = JSON.parse(content || '[]');
-			trajectory.push({ lat, lng });
-			fileEntry.createWriter(function(writer) {
-				writer.seek(0);
-				writer.write(JSON.stringify(trajectory));
-			});
-		},
-		async getLatlng() {
-			let getLatlngOnline = () => {
-				return new Promise((resolve, reject) => {
-					uni.getLocation({
-						type: 'gcj02',
-						success: res => {
-							resolve({ lat: res.latitude, lng: res.longitude });
-						},
-						fail: error => {
-							uni.showToast({
-								title: '当前位置获取失败,请检查GPS是否打开',
-								duration: 2000,
-								icon: 'none'
-							});
-							console.log('网络定位错误：', error);
-							reject();
-						}
-					});
 				});
-			};
-			let getLatlngOffline = () => {
-				return new Promise((resolve, reject) => {
-					plus.geolocation.getCurrentPosition(
-						res => {
-							resolve({ lat: res.coords.latitude, lng: res.coords.longitude });
-						},
-						error => {
-							let errorMsg = {
-								2: '定位失败，检查GPS是否打开，建议持设备到相对开阔的露天场所再次尝试'
-							};
-							uni.showToast({
-								title: errorMsg[error.code] || error.message,
-								duration: 2000,
-								icon: 'none'
-							});
-							reject();
-						}
-					);
-				});
-			};
-			return new Promise((resolve, reject) => {
-				uni.getNetworkType({
-					success: async ({ networkType }) => {
-						try {
-							let coord = networkType === 'none' ? await getLatlngOffline() : await getLatlngOnline();
-							resolve(coord);
-						} catch (_) {
-							resolve(null); // 定位获取失败仍然返回，返回值为null
-						}
-					}
-				});
-			});
+			},
+			getDistance(la1, lo1, la2, lo2) {
+				let La1 = (la1 * Math.PI) / 180.0;
+				let La2 = (la2 * Math.PI) / 180.0;
+				let La3 = La1 - La2;
+				let Lb3 = (lo1 * Math.PI) / 180.0 - (lo2 * Math.PI) / 180.0;
+				let s = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin(La3 / 2), 2) + Math.cos(La1) * Math.cos(La2) * Math.pow(Math.sin(
+					Lb3 / 2), 2)));
+				s = s * 6378.137;
+				s = Math.round(s * 10000) / 10000;
+				return Number((this.mileageMetry + Number(s.toFixed(3))).toFixed(3));
+			},
+			navigateTo() { // 问题上报
+				uni.navigateTo({
+					url: '/pages/inspect/report'
+				})
+			},
+			getTime() {
+				let date = new Date();
+				let year = date.getFullYear();
+				let month = date.getMonth() + 1 >= 1 && date.getMonth() <= 9 ? '0' + date.getMonth() : date.getMonth();
+				let day = date.getDate()<10?'0'+date.getDate():date.getDate();
+				let hours = date.getHours()<10?'0'+date.getHours():date.getHours();
+				let minutes = date.getMinutes()<10?'0'+date.getMinutes():date.getMinutes();
+				let seconds = date.getSeconds()<10?'0'+date.getSeconds():date.getSeconds();
+				//获取当前系统时间  格式(yyyy-mm-dd hh:mm:ss)
+				return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
+			}
 		},
-		getDistance(la1, lo1, la2, lo2) {
-			let La1 = (la1 * Math.PI) / 180.0;
-			let La2 = (la2 * Math.PI) / 180.0;
-			let La3 = La1 - La2;
-			let Lb3 = (lo1 * Math.PI) / 180.0 - (lo2 * Math.PI) / 180.0;
-			let s = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin(La3 / 2), 2) + Math.cos(La1) * Math.cos(La2) * Math.pow(Math.sin(Lb3 / 2), 2)));
-			s = s * 6378.137;
-			s = Math.round(s * 10000) / 10000;
-			this.mileageMetry = Number((this.mileageMetry + Number(s.toFixed(3))).toFixed(3));
-		},
-		navigateTo() {
-			// 跳转问题上报
-			// uni.navigateTo({
-			// 	url:''
-			// })
-		},
-		getTime() {
-			let date = new Date();
-			let year = date.getFullYear(); //年 ,从 Date 对象以四位数字返回年份
-			let month = date.getMonth() + 1; //月 ,从 Date 对象返回月份 (0 ~ 11) ,date.getMonth()比实际月份少 1 个月
-			let day = date.getDate(); //日 ,从 Date 对象返回一个月中的某一天 (1 ~ 31)
-		
-			let hours = date.getHours(); //小时 ,返回 Date 对象的小时 (0 ~ 23)
-			let minutes = date.getMinutes(); //分钟 ,返回 Date 对象的分钟 (0 ~ 59)
-			let seconds = date.getSeconds(); //秒 ,返回 Date 对象的秒数 (0 ~ 59)
-			//获取当前系统时间
-			let currentDate = year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
-			// alert(currentDate);
-			//修改月份格式
-			if (month >= 1 && month <= 9) {
-				month = '0' + month;
-			}
-			//修改日期格式
-			if (day >= 0 && day <= 9) {
-				day = '0' + day;
-			}
-			//修改小时格式
-			if (hours >= 0 && hours <= 9) {
-				hours = '0' + hours;
-			}
-			//修改分钟格式
-			if (minutes >= 0 && minutes <= 9) {
-				minutes = '0' + minutes;
-			}
-			//修改秒格式
-			if (seconds >= 0 && seconds <= 9) {
-				seconds = '0' + seconds;
-			}
-			//获取当前系统时间  格式(yyyy-mm-dd hh:mm:ss)
-			return year + '-' + month + '-' + day + ' ' + hours + ':' + minutes + ':' + seconds;
+		onUnload() {
+			this.platForm == 'android' && this.releaseWakeLock();
 		}
-	},
-	onUnload() {
-		this.platForm == 'android' && this.releaseWakeLock();
-	}
-};
+	};
 </script>
 
 <style lang="scss" scoped>
-.inspect-container {
-	width: 750rpx;
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	justify-content: space-between;
-}
-.uni-map {
-	width: 750rpx;
-	flex: 1;
-}
-.uni-map__image {
-	position: absolute;
-	width: 40px;
-	height: 40px;
-}
-.inspect-card {
-	height: 140px;
-	display: flex;
-	flex-direction: column;
-	justify-content: space-around;
-	padding: 20rpx;
-}
-.inspect-card-b {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-around;
-}
-.inspect-panel {
-	display: flex;
-	flex-direction: row;
-	font-weight: bold;
-	text-align: center;
-	align-items: center;
-}
-.inspect-panel__image {
-	width: 28px;
-	height: 28px;
-	margin-right: 14rpx;
-}
-.inspect-panel__text {
-	font-size: 40rpx;
-}
-.inspect-card-f {
-	display: flex;
-	flex-direction: row;
-	justify-content: center;
-}
-.inspect-btn {
-	color: white;
-	width: 650rpx;
-	height: 90rpx;
-	line-height: 90rpx;
-	text-align: center;
-	border-radius: 8rpx;
-	background-color: #1577fe;
-}
+	.inspect-container {
+		width: 750rpx;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+	}
 
-.img_pos_1 {
-	bottom: 66px;
-	right: 20px;
-}
-.img_pos_2 {
-	top: 20px;
-	right: 20px;
-}
-.img_pos_3 {
-	bottom: 18px;
-	right: 20px;
-}
+	.uni-map {
+		width: 750rpx;
+		flex: 1;
+	}
+
+	.uni-map__image {
+		position: absolute;
+		width: 40px;
+		height: 40px;
+	}
+
+	.inspect-card {
+		height: 140px;
+		display: flex;
+		padding: 20rpx;
+		flex-direction: column;
+		background-color: white;
+		justify-content: space-around;
+	}
+
+	.inspect-card-b {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+	}
+
+	.inspect-panel {
+		display: flex;
+		flex-direction: row;
+		font-weight: bold;
+		text-align: center;
+		align-items: center;
+	}
+
+	.inspect-panel__image {
+		width: 28px;
+		height: 28px;
+		margin-right: 14rpx;
+	}
+
+	.inspect-panel__text {
+		font-size: 32rpx;
+	}
+
+	.inspect-card-f {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+	}
+
+	.inspect-btn {
+		color: white;
+		width: 650rpx;
+		height: 90rpx; // 统一 cm-text-btn
+		line-height: 90rpx;
+		text-align: center;
+		border-radius: 8rpx;
+		background-color: #1577fe;
+	}
+
+	.img_pos_1 {
+		bottom: 66px;
+		right: 20px;
+	}
+
+	.img_pos_2 {
+		top: 20px;
+		right: 20px;
+	}
+
+	.img_pos_3 {
+		bottom: 18px;
+		right: 20px;
+	}
 </style>

@@ -15,7 +15,19 @@
 			"path": "pages/tabBar/inspect/index",
 			"style": {
 				"navigationBarTitleText": "巡检任务",
-				"enablePullDownRefresh": false
+				"enablePullDownRefresh": false,
+				"app-plus": {
+					"titleNView": {
+						"buttons": [{
+								"text": "问题上报", 
+								// "fontSrc": "/static/iconfont.ttf",
+								"fontSize": "22px",
+								"float": "right"
+							}
+						]
+						// "searchInput": {}
+					}
+				}
 			}
 		},
 		{
@@ -46,6 +58,11 @@
 				"navigationBarTitleText": "巡检"
 			}
 
+		}, {
+			"path": "pages/inspect/report",
+			"style": {
+				"navigationBarTitleText": "问题上报"
+			}
 		}
 	],
 	"globalStyle": {
@@ -64,8 +81,8 @@
 			"text": "办公"
 		}, {
 			"pagePath": "pages/tabBar/inspect/index",
-			"iconPath": "static/img/tabBar/inspect.png",
-			"selectedIconPath": "static/img/tabBar/inspect_s.png",
+			"iconPath": "static/img/tabBar/office.png",
+			"selectedIconPath": "static/img/tabBar/office_s.png",
 			"text": "巡检"
 		}, {
 			"pagePath": "pages/tabBar/user/index",
