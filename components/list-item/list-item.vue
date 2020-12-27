@@ -5,7 +5,11 @@
 				<text v-if="lable">{{ lable }}</text>
 				<slot v-else></slot>
 			</view>
-			<view class="list-item-tail">
+			<view v-if="editable" class="uni-inline-item">
+				<slot name="edit"></slot>
+				<text v-if="arrow" :class="['uni-icon', 'uni-icon-arrow' + arrow, 'uni-navigate-icon']"></text>
+			</view>
+			<view v-else>
 				<slot name="tail"></slot>
 				<text v-if="arrow" :class="['uni-icon', 'uni-icon-arrow' + arrow, 'uni-navigate-icon']"></text>
 			</view>
@@ -13,26 +17,31 @@
 	</view>
 </template>
 <script>
-export default {
-	props: {
-		arrow: {
-			type: String,
-			default: '',
-			require: false
+	export default {
+		props: {
+			arrow: {
+				type: String,
+				default: '',
+				require: false
+			},
+			lable: {
+				type: String,
+				default: '',
+				require: false
+			},
+			editable: {
+				type: Boolean,
+				default: false,
+				require: false
+			}
 		},
-		lable: {
-			type: String,
-			default: '',
-			require: false
+		mounted() {
+			console.log(this)
+		},
+		methods: {
+			handleClick() {
+				typeof this.$listeners.click === 'function' && this.$listeners.click();
+			}
 		}
-	},
-	data() {
-		return {};
-	},
-	methods:{
-		handleClick(){
-			typeof this.$listeners.click === 'function' && this.$listeners.click();
-		}
-	}
-};
+	};
 </script>
