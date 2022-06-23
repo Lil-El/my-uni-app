@@ -1,0 +1,12 @@
+Android：密钥：tyriverapk
+别名：riverofficers
+包名：com.tyxx.riverofficers
+
+
+
+ios：密码：tincher
+com.tianyuan.TianyuanNewPM
+C:/Users/76335/Desktop/IOS-正式证书/证书.p12
+C:/Users/76335/Desktop/IOS-正式证书/tianyuanNewPM_DIS.mobileprovision
+
+

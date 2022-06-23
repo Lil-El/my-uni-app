@@ -4,63 +4,28 @@ Vue.use(Vuex)
 
 const store = new Vuex.Store({
 	state: {
-		user: {}
+		dictData: {}
 	},
 	getters: {
-		getUser(state) {
-			return state.user
-		}
+	    getDictByCode(state) {
+	        return state.dictData;
+	    },
 	},
 	mutations: {
-		SET_USER(state, user) {
-			state.user = user;
-		}
+	    SET_DICT: function(state, map) {
+	        const { key, val = [] } = map;
+	        state.dictData[key] = val;
+	    },
 	},
 	actions: {
-		fetchUserInfoByTk({ commit }) {
-			return new Promise((resolve, reject)=>{
-				const token = uni.getStorageSync('TOKEN');
-				if(token){
-					setTimeout(() => {
-						const user = {
-							name: "MINO",
-							phone: '15035250351',
-							role: 'admin',
-							address: '韩国首尔',
-							age: 23,
-							sex: 1
-						}
-						commit("SET_USER", user)
-						uni.setStorageSync("TOKEN", '123')
-						getApp().globalData.userInfo = user;
-						resolve();
-					}, 1000)
-				}else{
-					resolve()
-				}
+	    getDictByCode({ commit, getters }, code) {
+	        if (getters.getDictByCode[code]) return getters.getDictByCode[code];
+	        return uni.$u.http.get("/dict/getByParentCode", {params: {parentCode: code}}).then((res) => {
+				commit("SET_DICT", { key: code, val: res.data.data });
+				return res.data.data;
 			})
-		},
-		login({ commit }, user) {
-			return new Promise((resolve, reject) => {
-				if(user.name === 'user'){
-					user.role = "user";
-				}else if(user.name === 'MINO'){
-					user.role = "admin";
-				}else{
-					reject("登录失败")
-				}
-				user.phone = "15012340351";
-				commit("SET_USER", user);
-				uni.setStorageSync("TOKEN", '123')
-				getApp().globalData.userInfo = user;
-				resolve("登录成功")
-			})
-		},
-		logout({ commit }, user) {
-			commit("SET_USER", {});
-			getApp().globalData.userInfo = null;
-			uni.clearStorageSync();
-		}
+	    },
 	}
 })
+
 export default store

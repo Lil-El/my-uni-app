@@ -1,94 +1,238 @@
 {
 	"pages": [{
-			"path": "pages/tabBar/office/index",
-			"style": {
-				"navigationBarTitleText": "智慧园区",
-				"enablePullDownRefresh": false
-			}
-		}, {
-			"path": "pages/tabBar/user/index",
-			"style": {
-				"navigationBarTitleText": "个人中心",
-				"enablePullDownRefresh": false
-			}
-		}, {
-			"path": "pages/tabBar/inspect/index",
-			"style": {
-				"navigationBarTitleText": "巡检任务",
-				"enablePullDownRefresh": false,
-				"app-plus": {
-					"titleNView": {
-						"buttons": [{
-								"text": "问题上报", 
-								// "fontSrc": "/static/iconfont.ttf",
-								"fontSize": "22px",
-								"float": "right"
-							}
-						]
-						// "searchInput": {}
-					}
+		"path": "pages/launch",
+		"style": {
+			"titleNView": false
+		}
+	}, {
+		"path": "pages/user/login",
+		"style": {
+			"navigationBarTitleText": "登录",
+			"enablePullDownRefresh": false,
+			"titleNView": false
+		}
+
+	}, {
+		"path": "pages/user/index",
+		"style": {
+			"navigationBarTitleText": "我的",
+			"enablePullDownRefresh": false,
+			"titleNView": false
+		}
+
+	}, {
+		"path": "pages/office/index",
+		"style": {
+			"navigationBarTitleText": "太化资产",
+			"enablePullDownRefresh": true,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			},
+			"app-plus": {
+				"pullToRefresh": {
+					"color": "#00CCFF"
 				}
 			}
-		},
-		{
-			"path": "pages/user/account/login",
-			"style": {
-				"navigationBarTitleText": "登录"
-			}
-		}, {
-			"path": "pages/user/account/forget",
-			"style": {
-				"navigationBarTitleText": "找回密码"
-			}
+		}
 
-		}, {
-			"path": "pages/user/account/register",
-			"style": {
-				"navigationBarTitleText": "注册"
-			}
-
-		}, {
-			"path": "pages/user/detail/detail",
-			"style": {
-				"navigationBarTitleText": "企业资料"
-			}
-		}, {
-			"path": "pages/inspect/inspect",
-			"style": {
-				"navigationBarTitleText": "巡检"
-			}
-
-		}, {
-			"path": "pages/inspect/report",
-			"style": {
-				"navigationBarTitleText": "问题上报"
+	}, {
+		"path": "pages/office/land/index",
+		"style": {
+			"navigationBarTitleText": "土地信息",
+			"enablePullDownRefresh": true,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			},
+			"app-plus": {
+				"pullToRefresh": {
+					"color": "#00CCFF"
+				}
 			}
 		}
-	],
+
+	}, {
+		"path": "pages/office/project/index",
+		"style": {
+			"navigationBarTitleText": "项目信息",
+			"enablePullDownRefresh": true,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			},
+			"app-plus": {
+				"pullToRefresh": {
+					"color": "#00CCFF"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/office/room/index",
+		"style": {
+			"navigationBarTitleText": "房间信息",
+			"enablePullDownRefresh": true,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			},
+			"app-plus": {
+				"pullToRefresh": {
+					"color": "#00CCFF"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/office/policy/index",
+		"style": {
+			"navigationBarTitleText": "政策信息",
+			"enablePullDownRefresh": true,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			},
+			"app-plus": {
+				"pullToRefresh": {
+					"color": "#00CCFF"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/office/build/index",
+		"style": {
+			"navigationBarTitleText": "建筑信息",
+			"enablePullDownRefresh": true,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			},
+			"app-plus": {
+				"pullToRefresh": {
+					"color": "#00CCFF"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/office/land/detail",
+		"style": {
+			"navigationBarTitleText": "土地信息",
+			"enablePullDownRefresh": false,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/office/policy/detail",
+		"style": {
+			"navigationBarTitleText": "政策信息",
+			"enablePullDownRefresh": false,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/office/build/detail",
+		"style": {
+			"navigationBarTitleText": "建筑信息",
+			"enablePullDownRefresh": false,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/office/room/detail",
+		"style": {
+			"navigationBarTitleText": "房间信息",
+			"enablePullDownRefresh": false,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/office/project/detail",
+		"style": {
+			"navigationBarTitleText": "项目信息",
+			"enablePullDownRefresh": false,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			}
+		}
+
+	}, {
+		"path": "pages/map/index",
+		"style": {
+			"navigationBarTitleText": "一张图",
+			"enablePullDownRefresh": false,
+			"titleNView": false
+		}
+
+	}, {
+		"path": "pages/user/update",
+		"style": {
+			"navigationBarTitleText": "修改密码",
+			"enablePullDownRefresh": false,
+			"titleNView": {
+				"splitLine": {
+					"color": "#f5f5f5"
+				}
+			}
+		}
+
+	}],
 	"globalStyle": {
-		"navigationBarTextStyle": "white",
-		"navigationBarBackgroundColor": "#1577FE",
-		"backgroundColor": "#F4F4F4"
+		"navigationBarTextStyle": "black",
+		"navigationBarBackgroundColor": "#ffffff",
+		"backgroundColor": "#f6f6f7"
 	},
 	"tabBar": {
-		"color": "#7A7E83",
-		"selectedColor": "#007AFF",
-		"borderStyle": "white",
+		"color": "#000000",
+		"fontSize": "15px",
+		"iconWidth": "22px",
+		"height": "50px",
+		"borderStyle": "#dcdcdc",
+		"selectedColor": "#4877E6",
+		"backgroundColor": "#ffffff",
 		"list": [{
-			"pagePath": "pages/tabBar/office/index",
-			"iconPath": "static/img/tabBar/office.png",
-			"selectedIconPath": "static/img/tabBar/office_s.png",
-			"text": "办公"
-		}, {
-			"pagePath": "pages/tabBar/inspect/index",
-			"iconPath": "static/img/tabBar/office.png",
-			"selectedIconPath": "static/img/tabBar/office_s.png",
-			"text": "巡检"
-		}, {
-			"pagePath": "pages/tabBar/user/index",
-			"iconPath": "static/img/tabBar/user.png",
-			"selectedIconPath": "static/img/tabBar/user_s.png",
-			"text": "我的"
-		}]
+				"text": "首页",
+				"pagePath": "pages/office/index"
+				// "iconPath": "static/img/officeHL.png",
+				// "selectedIconPath": "static/img/office.png"
+			}, {
+				"text": "地图",
+				"pagePath": "pages/map/index"
+				// "iconPath": "static/img/officeHL.png",
+				// "selectedIconPath": "static/img/office.png"
+			},
+			{
+				"text": "我的",
+				"pagePath": "pages/user/index"
+				// "iconPath": "static/img/userHL.png",
+				// "selectedIconPath": "static/img/user.png"
+			}
+		]
 	}
 }

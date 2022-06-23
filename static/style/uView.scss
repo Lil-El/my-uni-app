@@ -1,0 +1,18 @@
+// uView样式调整
+
+// 表单页面，form部分样式调整
+.u-cell .u-form-item {
+	&__body {
+		padding: 0;
+	}
+	.u-form-item__body__right__message {
+		text-align: right;
+	}
+}
+// 表单页面，required的*号，通过cell去添加
+.u-required {
+	.u-cell__title-text::before {
+		content: "*";
+		color: red;
+	}
+}

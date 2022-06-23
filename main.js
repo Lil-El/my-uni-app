@@ -1,12 +1,14 @@
 import Vue from 'vue'
+import store from "@/store/index.js"
+import uView from '@/uni_modules/uview-ui'
+Vue.use(uView)
+
 import App from './App'
-import store from '@/store/index'
-
 Vue.config.productionTip = false
-App.mpType = 'app'
 
+App.mpType = 'app'
 const app = new Vue({
-	store,
-	...App
+	...App,
+	store
 })
 app.$mount()
